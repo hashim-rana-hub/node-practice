@@ -6,6 +6,9 @@ const {
   deleteProject,
   updateProject,
 } = require("../controllers/projectController");
+const authMiddleware = require("../middleware/authmiddleware");
+
+router.use(authMiddleware);
 
 // GET all projects
 router.get("/", getProjects);
