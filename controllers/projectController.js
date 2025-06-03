@@ -1,5 +1,5 @@
 const Project = require("../models/Project");
-
+const { projectValidator } = require("../validators/validator");
 // GET /projects
 const getProjects = async (req, res) => {
   try {
@@ -13,11 +13,9 @@ const getProjects = async (req, res) => {
 // POST /projects
 const addProject = async (req, res) => {
   const { title, description, tech } = req.body;
-
-  if (!title || !description) {
-    return res
-      .status(400)
-      .json({ message: "Title and description are required." });
+  const { isValid, errors } = projectValidator(req.body);
+  if (!isValid) {
+    return res.status(400).json({ message: "Validation failed", errors });
   }
 
   try {
@@ -49,6 +47,10 @@ const deleteProject = async (req, res) => {
 const updateProject = async (req, res) => {
   const { id } = req.params;
   const { title, description, tech } = req.body;
+  const { isValid, errors } = projectValidator(req.body);
+  if (!isValid) {
+    return res.status(400).json({ message: "Validation failed", errors });
+  }
 
   try {
     const updatedProject = await Project.findByIdAndUpdate(id, {
