@@ -8,13 +8,15 @@ const {
 } = require("../controllers/projectController");
 const authMiddleware = require("../middleware/authmiddleware");
 
+const parser = require("../middleware/cloudinaryMiddleWare");
+
 router.use(authMiddleware);
 
 // GET all projects
 router.get("/", getProjects);
 
 // POST a new project
-router.post("/", addProject);
+router.post("/", parser.single("image"), addProject);
 
 //delete a project
 router.delete("/:id", deleteProject);

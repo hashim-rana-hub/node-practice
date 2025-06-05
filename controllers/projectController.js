@@ -44,7 +44,8 @@ const addProject = async (req, res) => {
   }
 
   try {
-    const project = new Project({ title, description, tech });
+    const image = req.file?.path || null;
+    const project = new Project({ title, description, tech, image });
     const saved = await project.save();
     res.status(201).json({
       success: true,
