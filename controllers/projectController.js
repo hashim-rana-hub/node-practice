@@ -1,12 +1,32 @@
 const Project = require("../models/Project");
 const { projectValidator } = require("../validators/validator");
+
 // GET /projects
 const getProjects = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 2;
+  const skip = (page - 1) * limit;
+
   try {
-    const projects = await Project.find();
-    res.json(projects);
+    const total = await Project.countDocuments();
+    const projects = await Project.find()
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      message: "Projects fetched successfully",
+      page,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+      data: projects,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Server Error", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching projects",
+      error: err.message,
+    });
   }
 };
 
@@ -14,18 +34,29 @@ const getProjects = async (req, res) => {
 const addProject = async (req, res) => {
   const { title, description, tech } = req.body;
   const { isValid, errors } = projectValidator(req.body);
+
   if (!isValid) {
-    return res.status(400).json({ message: "Validation failed", errors });
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors,
+    });
   }
 
   try {
     const project = new Project({ title, description, tech });
     const saved = await project.save();
-    res.status(201).json(saved);
+    res.status(201).json({
+      success: true,
+      message: "Project created successfully",
+      data: saved,
+    });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Could not save project", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Could not save project",
+      error: err.message,
+    });
   }
 };
 
@@ -35,32 +66,65 @@ const deleteProject = async (req, res) => {
   try {
     const deletedProject = await Project.findByIdAndDelete(id);
     if (!deletedProject) {
-      return res.status(404).json({ message: "Project not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
     }
-    res.json({ message: "Project deleted successfully" });
+
+    res.status(200).json({
+      success: true,
+      message: "Project deleted successfully",
+      data: deletedProject,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Server Error", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error while deleting project",
+      error: err.message,
+    });
   }
 };
 
-// UPDATE /projects/:id
+// PUT /projects/:id
 const updateProject = async (req, res) => {
   const { id } = req.params;
   const { title, description, tech } = req.body;
   const { isValid, errors } = projectValidator(req.body);
+
   if (!isValid) {
-    return res.status(400).json({ message: "Validation failed", errors });
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors,
+    });
   }
 
   try {
-    const updatedProject = await Project.findByIdAndUpdate(id, {
-      title,
-      description,
-      tech,
+    const updatedProject = await Project.findByIdAndUpdate(
+      id,
+      { title, description, tech },
+      { new: true } // returns the updated document
+    );
+
+    if (!updatedProject) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Project updated successfully",
+      data: updatedProject,
     });
-    res.json(updatedProject);
   } catch (err) {
-    res.status(500).json({ message: "Server Error", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error while updating project",
+      error: err.message,
+    });
   }
 };
 
