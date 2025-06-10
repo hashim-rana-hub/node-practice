@@ -1,5 +1,6 @@
 const Project = require("../models/Project");
 const { projectValidator } = require("../validators/validator");
+const cloudinary = require("../config/cloudinary");
 
 // GET /projects
 const getProjects = async (req, res) => {
@@ -93,20 +94,14 @@ const updateProject = async (req, res) => {
   const { title, description, tech } = req.body;
   const { isValid, errors } = projectValidator(req.body);
 
-  if (!isValid) {
+  if (!title && !description && !tech && !req.file) {
     return res.status(400).json({
       success: false,
-      message: "Validation failed",
-      errors,
+      message: "Nothing provided to update",
     });
   }
-
   try {
-    const updatedProject = await Project.findByIdAndUpdate(
-      id,
-      { title, description, tech },
-      { new: true } // returns the updated document
-    );
+    const updatedProject = await Project.findById(id);
 
     if (!updatedProject) {
       return res.status(404).json({
@@ -115,10 +110,28 @@ const updateProject = async (req, res) => {
       });
     }
 
+    // Upload new image if provided
+    if (req.file) {
+      const oldImagePublicId = updatedProject.image
+        ?.split("/")
+        .pop()
+        .split(".")[0];
+      await cloudinary.uploader.destroy(`uploads/${oldImagePublicId}`);
+
+      updatedProject.image = req.file.path; // Cloudinary URL
+    }
+
+    // Update other fields
+    if (title !== undefined) updatedProject.title = title;
+    if (description !== undefined) updatedProject.description = description;
+    if (tech !== undefined) updatedProject.tech = tech;
+
+    const updated = await updatedProject.save();
+
     res.status(200).json({
       success: true,
       message: "Project updated successfully",
-      data: updatedProject,
+      data: updated,
     });
   } catch (err) {
     res.status(500).json({

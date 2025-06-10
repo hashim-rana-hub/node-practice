@@ -22,6 +22,6 @@ router.post("/", parser.single("image"), addProject);
 router.delete("/:id", deleteProject);
 
 //update a project
-router.patch("/:id", updateProject);
+router.patch("/:id", parser.single("image"), updateProject);
 
 module.exports = router;
